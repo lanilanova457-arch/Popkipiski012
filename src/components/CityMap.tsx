@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Home, 
@@ -93,7 +93,7 @@ interface CityMapProps {
   onResetGame: () => void;
 }
 
-export const CityMap: React.FC<CityMapProps> = ({
+export const CityMap = memo(function CityMap({
   currentLocation,
   onTravel,
   gameClock,
@@ -103,7 +103,7 @@ export const CityMap: React.FC<CityMapProps> = ({
   sharedFacts,
   onAddGossip,
   onResetGame
-}) => {
+}: CityMapProps) {
   const [hoveredLoc, setHoveredLoc] = useState<string | null>(null);
   const [showInterrogation, setShowInterrogation] = useState(false);
   const [interrogationAlibi, setInterrogationAlibi] = useState<string | null>(null);
@@ -719,4 +719,4 @@ export const CityMap: React.FC<CityMapProps> = ({
 
     </div>
   );
-};
+});

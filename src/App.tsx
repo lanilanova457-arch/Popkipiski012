@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   MessageSquare,
@@ -38,13 +38,15 @@ import { usePersistentStore } from "./hooks/usePersistentStore";
 import { clearDb } from "./utils/db";
 
 // Extracted Modals
+import { StoryView } from "./components/StoryView";
+import { LoreView } from "./components/LoreView";
+import { Sidebar } from "./components/Sidebar";
 import { ThoughtsModal } from "./components/ThoughtsModal";
 import { CharacteristicsModal } from "./components/CharacteristicsModal";
 import { CreateGroupModal } from "./components/CreateGroupModal";
 import { AddCharacterModal } from "./components/AddCharacterModal";
 import { UserProfileEditor } from "./components/UserProfileEditor";
 import { LiveVoiceCall } from "./components/LiveVoiceCall";
-import { CharacterItem } from "./components/CharacterItem";
 import { MessageItem } from "./components/MessageItem";
 
 const getPenisSizeGradation = (size: number): string => {
@@ -254,6 +256,8 @@ export default function App() {
   const [charAnger, setCharAnger] = useState(0);
   const [charFetishes, setCharFetishes] = useState("");
   const [charInclinations, setCharInclinations] = useState("");
+  const [charPenisSize, setCharPenisSize] = useState(16);
+  const [charBallFullness, setCharBallFullness] = useState(50);
 
   // Group creation Modal
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -1093,7 +1097,7 @@ export default function App() {
   };
 
   // Delete message to replay dialogue
-  const handleDeleteMessage = (msgId: string) => {
+  const handleDeleteMessage = useCallback((msgId: string) => {
     if (!selectedChatId) return;
     setMessages(prev => {
       const chatMsgs = prev[selectedChatId] || [];
@@ -1105,10 +1109,10 @@ export default function App() {
     });
     setGossipNotification("🗑️ Сообщение удалено. Вы можете переиграть ветку диалога с этого момента!");
     setTimeout(() => setGossipNotification(null), 3000);
-  };
+  }, [selectedChatId]);
 
   // Open Character Modal for edit or create
-  const openCharacterModal = (charId: string | null) => {
+  const openCharacterModal = useCallback((charId: string | null) => {
     if (charId) {
       // Edit mode
       const char = characters.find(c => c.id === charId);
@@ -1129,6 +1133,8 @@ export default function App() {
         setCharAnger(char.scales?.anger ?? 0);
         setCharFetishes(char.fetishes ? char.fetishes.join(", ") : "");
         setCharInclinations(char.inclinations ? char.inclinations.join(", ") : "");
+        setCharPenisSize(char.penisSize ?? 16);
+        setCharBallFullness(char.ballFullness ?? 50);
         
         setShowCharModal(true);
       }
@@ -1150,10 +1156,12 @@ export default function App() {
       setCharAnger(0);
       setCharFetishes("");
       setCharInclinations("");
+      setCharPenisSize(16);
+      setCharBallFullness(50);
       
       setShowCharModal(true);
     }
-  };
+  }, [characters]);
 
   // Create or Update Character
   const handleSaveCharacter = (e: React.FormEvent) => {
@@ -1194,7 +1202,9 @@ export default function App() {
             initialMessage: charGreeting.trim() || c.initialMessage,
             scales: newScales,
             fetishes: newFetishes,
-            inclinations: newInclinations
+            inclinations: newInclinations,
+            penisSize: charPenisSize,
+            ballFullness: charBallFullness
           };
         }
         return c;
@@ -1220,7 +1230,9 @@ export default function App() {
         ],
         scales: newScales,
         fetishes: newFetishes,
-        inclinations: newInclinations
+        inclinations: newInclinations,
+        penisSize: charPenisSize,
+        ballFullness: charBallFullness
       };
       setCharacters(prev => [...prev, newChar]);
       setSelectedChatId(newId);
@@ -2571,171 +2583,19 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* PANEL 1: Left Column - Character Selection & Settings */}
-        <aside className="w-80 border-r border-neutral-800 bg-neutral-900/30 flex flex-col shrink-0 hidden md:flex">
-          
-          {/* Navigation Tab Header (Inside Sidebar for Desktop) */}
-          <div className="p-4 border-b border-neutral-800/60 flex flex-col gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-              Ваше сюжетное пространство
-            </span>
-            <div className="grid grid-cols-4 gap-1 p-1 bg-neutral-950 rounded-lg border border-neutral-800/50">
-              <button
-                onClick={() => { setActiveTab("chat"); }}
-                className={`py-1.5 text-[11px] font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === "chat" 
-                    ? "bg-neutral-800 text-white shadow-sm font-semibold" 
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Чаты
-              </button>
-              <button
-                onClick={() => { setActiveTab("map"); }}
-                className={`py-1.5 text-[11px] font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === "map" 
-                    ? "bg-neutral-800 text-white shadow-sm font-semibold" 
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Карта
-              </button>
-              <button
-                onClick={() => { setActiveTab("story"); }}
-                className={`py-1.5 text-[11px] font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === "story" 
-                    ? "bg-neutral-800 text-white shadow-sm font-semibold" 
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Сюжет
-              </button>
-              <button
-                onClick={() => { setActiveTab("lore"); }}
-                className={`py-1.5 text-[11px] font-medium rounded-md transition-all cursor-pointer ${
-                  activeTab === "lore" 
-                    ? "bg-neutral-800 text-white shadow-sm font-semibold" 
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Сплетни
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => openCharacterModal(null)}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-lg shadow-sm transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Персонаж</span>
-              </button>
-              <button
-                onClick={() => { setShowGroupModal(true); }}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-neutral-800 hover:bg-neutral-750 text-neutral-200 text-[10px] font-bold rounded-lg shadow-sm transition-all border border-neutral-700 cursor-pointer"
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>+ Группа</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Chat list viewport */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar">
-            
-            {/* Group Chats Section */}
-            {groupChats.length > 0 && (
-              <div className="space-y-1.5">
-                <div className="text-[10px] font-bold text-neutral-500 px-2 uppercase tracking-wider flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-neutral-500" />
-                  <span>Групповые беседы ({groupChats.length})</span>
-                </div>
-                {groupChats.map(group => {
-                  const isSelected = group.id === selectedChatId;
-                  const chatMsgs = messages[group.id] || [];
-                  const lastMsg = chatMsgs[chatMsgs.length - 1];
-
-                  return (
-                    <button
-                      key={group.id}
-                      onClick={() => {
-                        setSelectedChatId(group.id);
-                        setActiveTab("chat");
-                      }}
-                      className={`w-full text-left p-2.5 rounded-xl flex items-start gap-3 transition-all cursor-pointer relative ${
-                        isSelected
-                          ? "bg-indigo-600/15 border border-indigo-500/25 shadow-md shadow-indigo-950/20"
-                          : "hover:bg-neutral-800/40 border border-transparent"
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${group.avatarColor} flex items-center justify-center text-white font-extrabold text-sm shadow-md shrink-0`}>
-                        {group.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-neutral-100 truncate">
-                            {group.name}
-                          </span>
-                          <span className="text-[9px] text-neutral-500 shrink-0">
-                            {lastMsg ? lastMsg.timestamp : ""}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-neutral-400 truncate mt-0.5">
-                          {lastMsg ? lastMsg.content : "Сообщений нет. Начните диалог первым!"}
-                        </p>
-                        <span className="text-[9px] bg-neutral-850 text-indigo-400 px-1.5 py-0.5 rounded-md mt-1 inline-block">
-                          👥 Участников: {group.participantIds.length}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Private Chats Section */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-neutral-500 px-2 uppercase tracking-wider flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5 text-neutral-500" />
-                <span>Личные переписки ({characters.length})</span>
-              </div>
-              
-              {characters.length === 0 ? (
-                <div className="text-center p-4 text-xs text-neutral-600">Нет персонажей. Создайте своего!</div>
-              ) : (
-                characters.map(char => {
-                  const isSelected = char.id === selectedChatId;
-                  const charMsgs = messages[char.id] || [];
-                  const lastMsg = charMsgs[charMsgs.length - 1];
-
-                  return (
-                    <CharacterItem
-                      key={char.id}
-                      char={char}
-                      isSelected={isSelected}
-                      lastMsg={lastMsg}
-                      gameClock={gameClock}
-                      currentLocation={currentLocation}
-                      onSelect={() => {
-                        setSelectedChatId(char.id);
-                        setActiveTab("chat");
-                      }}
-                    />
-                  );
-                })
-              )}
-            </div>
-
-          </div>
-
-          {/* Quick info panel at bottom of sidebar */}
-          <div className="p-4 border-t border-neutral-800/60 bg-neutral-900/10 text-[10px] text-neutral-500 flex flex-col gap-1.5">
-            <div className="flex items-center gap-1 text-neutral-400">
-              <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="font-semibold">Персонаж Начинает Вторым</span>
-            </div>
-            <p>Диалоги теперь чисты по умолчанию. Ваше первое слово и личность игрока задают тон всей ролевой ветке.</p>
-          </div>
-        </aside>
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          openCharacterModal={openCharacterModal}
+          setShowGroupModal={setShowGroupModal}
+          groupChats={groupChats}
+          selectedChatId={selectedChatId}
+          setSelectedChatId={setSelectedChatId}
+          messages={messages}
+          characters={characters}
+          gameClock={gameClock}
+          currentLocation={currentLocation}
+        />
 
         {/* PANEL 2: Central Column - Chat View or Scenario deck */}
         <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden relative">
@@ -3503,412 +3363,24 @@ export default function App() {
               }}
             />
           ) : activeTab === "story" ? (
-            /* --- ACTIVE VIEW: DYNAMIC STORYTELLER LOGS --- */
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="max-w-2xl mx-auto space-y-3">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <BookOpen className="w-5 h-5" />
-                  <span className="font-bold uppercase tracking-wider text-xs">Личный Хронометр Судьбы</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white">Формирующийся Сюжет (Рассказчик)</h2>
-                <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                  Куратор ИИ анализирует все ваши диалоги, тайны и раскрытые слухи, сплетая их в полноценное интерактивное произведение. Нажмите кнопку обновления, чтобы Рассказчик обновил сводку и зафиксировал новые вехи!
-                </p>
-
-                <div className="pt-2 flex items-center justify-center">
-                  <button
-                    onClick={() => refreshStoryteller()}
-                    disabled={isStoryLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl shadow-lg shadow-indigo-950 font-bold text-xs sm:text-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                  >
-                    <Sparkles className={`w-4 h-4 ${isStoryLoading ? "animate-spin" : ""}`} />
-                    <span>{isStoryLoading ? "Рассказчик обдумывает сюжет..." : "🎭 Обновить сюжет на базе диалогов"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Storyteller Direct Intervention Interface */}
-              <div className="max-w-2xl mx-auto bg-neutral-900/40 border border-neutral-800 p-5 rounded-2xl space-y-4 shadow-lg backdrop-blur-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl"></div>
-                <div className="flex items-center gap-2 text-amber-400">
-                  <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider">Корректировка линии судьбы (Воля Рассказчика)</h3>
-                </div>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Опишите любое внезапное событие, сюжетный поворот, звонок или действие третьих лиц. Рассказчик перестроит сводку событий и сгенерирует новые слухи, которые персонажи сразу начнут обсуждать в чатах.
-                </p>
-                <div className="space-y-3">
-                  <textarea
-                    value={customDirectiveText}
-                    onChange={(e) => setCustomDirectiveText(e.target.value)}
-                    placeholder="Пример: 'Внезапно мама находит в моей комнате пачку сигарет и устраивает скандал' или 'Артем попадает в аварию во время гонки и просит меня о помощи'..."
-                    rows={3}
-                    className="w-full bg-neutral-950 border border-neutral-850 rounded-xl p-3 text-xs text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500 transition-all resize-none"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      disabled={isStoryLoading || !customDirectiveText.trim()}
-                      onClick={async () => {
-                        const directive = customDirectiveText.trim();
-                        if (!directive) return;
-                        setCustomDirectiveText("");
-                        await refreshStoryteller(directive);
-                      }}
-                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 disabled:from-neutral-800 disabled:to-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold text-xs rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{isStoryLoading ? "Материализация событий..." : "Внедрить волю Рассказчика"}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="max-w-2xl mx-auto mt-6 space-y-6">
-                
-                {isStoryLoading ? (
-                  <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl text-center space-y-3 animate-pulse">
-                    <div className="h-4 bg-neutral-800 rounded w-2/3 mx-auto"></div>
-                    <div className="h-3 bg-neutral-800 rounded w-5/6 mx-auto"></div>
-                    <div className="h-3 bg-neutral-800 rounded w-4/5 mx-auto"></div>
-                    <div className="h-3 bg-neutral-800 rounded w-1/2 mx-auto"></div>
-                  </div>
-                ) : storyLog ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-6"
-                  >
-                    {/* Story Summary text */}
-                    <div className="bg-neutral-900/60 border border-neutral-800 p-5 rounded-2xl backdrop-blur-md space-y-3 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl"></div>
-                      <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
-                        <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Текущая ситуация</span>
-                        <span className="text-[10px] text-neutral-500">Обновлено: {storyLog.lastUpdated}</span>
-                      </div>
-                      <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed whitespace-pre-wrap font-serif tracking-wide">
-                        {storyLog.storySummary}
-                      </p>
-                    </div>
-
-                    {/* Timeline key chapters */}
-                    {storyLog.keyChapters && storyLog.keyChapters.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Разблокированные Сюжетные Вехи</h3>
-                        <div className="space-y-2 relative pl-4 border-l border-indigo-500/20">
-                          {storyLog.keyChapters.map((chapter, idx) => (
-                            <div key={idx} className="relative py-1">
-                              <span className="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-neutral-950 shadow"></span>
-                              <div className="bg-neutral-900/40 border border-neutral-850 p-3 rounded-xl">
-                                <h4 className="font-bold text-xs text-neutral-200">Веха {idx + 1}: {chapter}</h4>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                ) : (
-                  <div className="bg-neutral-900/30 border border-neutral-800/80 p-8 rounded-3xl text-center text-neutral-500 text-sm leading-relaxed max-w-xl mx-auto">
-                    <BookOpen className="w-10 h-10 text-neutral-700 mx-auto mb-2" />
-                    <span>Сюжетный журнал пока пуст. Пообщайтесь с персонажами в чатах, а затем обновите сюжет сверху, чтобы запустить формирование общей повести!</span>
-                  </div>
-                )}
-
-              </div>
-            </div>
+            <StoryView
+              isStoryLoading={isStoryLoading}
+              storyLog={storyLog}
+              customDirectiveText={customDirectiveText}
+              setCustomDirectiveText={setCustomDirectiveText}
+              refreshStoryteller={refreshStoryteller}
+            />
           ) : activeTab === "lore" ? (
-            /* --- ACTIVE VIEW: GOSSIP AND FACT RADAR --- */
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-              <div className="max-w-6xl mx-auto space-y-3">
-                <div className="flex items-center gap-2 text-amber-400">
-                  <Radio className="w-5 h-5 animate-pulse" />
-                  <span className="font-bold uppercase tracking-wider text-xs">Индивидуальная сеть сплетен</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-neutral-50 text-left">Сарафанное радио (Gossip Network)</h2>
-                <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed text-left">
-                  Каждая тайна или факт, упомянутый в переписке, автоматически записывается в память игры и начинает распространяться по индивидуальным связям между персонажами с разной вероятностью на каждом ходу!
-                </p>
-              </div>
-
-              <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Left Columns: Form & Gossip list */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Add Custom Fact form */}
-                  <div className="bg-neutral-900 border border-neutral-800/80 p-5 rounded-2xl space-y-4 shadow-lg text-left">
-                    <h3 className="font-bold text-xs text-neutral-200 uppercase tracking-wider">Вбросить новую сплетню</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="sm:col-span-2">
-                        <input
-                          type="text"
-                          id="manual-fact-input"
-                          placeholder="Например: 'Героиня сегодня без трусиков в офисе'..."
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-neutral-100 placeholder-neutral-700 focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-                      <div>
-                        <select
-                          id="manual-fact-group"
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-neutral-100 focus:outline-none focus:border-amber-500 font-semibold"
-                        >
-                          <option value="Все">📢 Сделать достоянием всех</option>
-                          <option value="Семья">🏡 Доверить всей Семье</option>
-                          <option value="Друзья">👥 Доверить всем Друзьям</option>
-                          <option value="Работа">💼 Рассказать всем Коллегам</option>
-                          {characters.map(c => (
-                            <option key={c.id} value={`char:${c.id}`}>
-                              👤 Шепнуть лично: {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const txt = (document.getElementById("manual-fact-input") as HTMLInputElement)?.value;
-                        const grp = (document.getElementById("manual-fact-group") as HTMLSelectElement)?.value as any;
-                        if (!txt || !txt.trim()) return;
-
-                        let initialKnownBy: string[] = [];
-                        let factGroup = grp;
-
-                        if (grp === "Все") {
-                          initialKnownBy = characters.map(c => c.id);
-                        } else if (grp === "Семья") {
-                          initialKnownBy = characters.filter(c => c.group === "Семья").map(c => c.id);
-                        } else if (grp === "Друзья") {
-                          initialKnownBy = characters.filter(c => c.group === "Друзья").map(c => c.id);
-                        } else if (grp === "Работа") {
-                          initialKnownBy = characters.filter(c => c.group === "Работа").map(c => c.id);
-                        } else if (grp.startsWith("char:")) {
-                          const targetCharId = grp.substring(5);
-                          initialKnownBy = [targetCharId];
-                          const targetChar = characters.find(c => c.id === targetCharId);
-                          factGroup = targetChar ? targetChar.group : "Личное";
-                        } else {
-                          initialKnownBy = ["user"];
-                        }
-
-                        const fact: SharedFact = {
-                          id: `manual-${Date.now()}`,
-                          text: txt.trim(),
-                          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                          sourceCharacterId: "user",
-                          group: factGroup,
-                          knownBy: initialKnownBy
-                        };
-
-                        setSharedFacts(prev => {
-                          const updated = [fact, ...prev];
-                          return propagateRumors(updated, characters);
-                        });
-
-                        (document.getElementById("manual-fact-input") as HTMLInputElement).value = "";
-
-                        let targetLabel = grp;
-                        if (grp.startsWith("char:")) {
-                          const targetCharId = grp.substring(5);
-                          const targetChar = characters.find(c => c.id === targetCharId);
-                          targetLabel = targetChar ? `лично ${targetChar.name}` : "персонажу";
-                        } else if (grp === "Все") {
-                          targetLabel = "всех персонажей";
-                        } else {
-                          targetLabel = `группы "${grp}"`;
-                        }
-
-                        setGossipNotification(`🤫 Сплетня доверена ${targetLabel}: "${txt}"`);
-                        setTimeout(() => setGossipNotification(null), 3500);
-                      }}
-                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-md flex items-center gap-1.5"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Запустить по сарафанному радио</span>
-                    </button>
-                  </div>
-
-                  {/* Facts List */}
-                  <div className="space-y-3 text-left">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-xs uppercase tracking-wider text-neutral-400">Активные слухи в памяти мира ({sharedFacts.length})</h3>
-                      {sharedFacts.length > 0 && (
-                        <button
-                          onClick={() => {
-                            setSharedFacts([]);
-                            setRumorLogs([]);
-                            localStorage.removeItem("roleplay_rumor_logs_v2");
-                            localStorage.removeItem("roleplay_shared_facts_v2");
-                          }}
-                          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Стереть память сплетен
-                        </button>
-                      )}
-                    </div>
-
-                    {sharedFacts.length === 0 ? (
-                      <div className="bg-neutral-900/30 border border-neutral-800/60 p-8 rounded-2xl text-center text-neutral-500 text-sm leading-relaxed">
-                        Память пуста. Расскажите секреты персонажам в диалогах, или сделайте вброс выше, чтобы запустить слухи!
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {sharedFacts.map((fact) => {
-                          const sourceChar = characters.find(c => c.id === fact.sourceCharacterId);
-                          const knownIds = fact.knownBy || [];
-                          const knowersList = characters.filter(c => knownIds.includes(c.id));
-
-                          return (
-                            <div
-                              key={fact.id}
-                              className="bg-neutral-900 border border-neutral-800/70 p-4 rounded-xl space-y-3 hover:border-neutral-700 transition-all text-xs"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="space-y-1 flex-1 min-w-0">
-                                  <p className="text-xs sm:text-xs font-semibold text-neutral-100 break-words">
-                                    🤫 "{fact.text}"
-                                  </p>
-                                  <div className="flex items-center gap-2 text-[9px] text-neutral-500 font-bold">
-                                    <span>ТИП: {fact.group === "Все" ? "Публичный" : "Локальный"}</span>
-                                    <span>•</span>
-                                    <span>ИСТОЧНИК: {sourceChar ? sourceChar.name : "Главный Герой"}</span>
-                                  </div>
-                                </div>
-
-                                <button
-                                  onClick={() => setSharedFacts(prev => prev.filter(f => f.id !== fact.id))}
-                                  className="p-1.5 hover:bg-neutral-800 text-neutral-500 hover:text-red-400 rounded-lg transition-all"
-                                  title="Удалить слух"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-
-                              {/* Knowers badgeline */}
-                              <div className="border-t border-neutral-950 pt-2.5 space-y-1.5">
-                                <div className="text-[9px] text-neutral-500 font-extrabold uppercase">Кто об этом знает:</div>
-                                <div className="flex flex-wrap gap-1">
-                                  {fact.group === "Все" ? (
-                                    <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20">
-                                      📢 Известно абсолютно всем
-                                    </span>
-                                  ) : knowersList.length === 0 ? (
-                                    <span className="text-[10px] text-neutral-600 italic">Пока никто не узнал по связям</span>
-                                  ) : (
-                                    knowersList.map(kn => (
-                                      <span
-                                        key={kn.id}
-                                        className="px-2.5 py-0.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-300 text-[10px] font-semibold flex items-center gap-1"
-                                      >
-                                        <span className={`w-1.5 h-1.5 rounded-full ${kn.statusColor || "bg-emerald-500"}`}></span>
-                                        {kn.name}
-                                      </span>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column: Timeline Gossip Log & Connection Map */}
-                <div className="space-y-6 text-left">
-                  {/* Timeline Feed */}
-                  <div className="bg-neutral-900 border border-neutral-800/80 rounded-2xl p-4 space-y-4 shadow-lg flex flex-col max-h-[350px]">
-                    <div className="flex items-center justify-between shrink-0">
-                      <h3 className="font-extrabold text-xs text-neutral-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                        Лента утечек и слухов
-                      </h3>
-                      {rumorLogs.length > 0 && (
-                        <button
-                          onClick={() => {
-                            setRumorLogs([]);
-                            localStorage.removeItem("roleplay_rumor_logs_v2");
-                          }}
-                          className="text-[10px] text-neutral-500 hover:text-neutral-300 cursor-pointer font-bold"
-                        >
-                          Очистить
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                      {rumorLogs.length === 0 ? (
-                        <div className="py-12 text-center text-neutral-600 text-[11px] italic">
-                          Событий пока не зафиксировано. По мере развития переписок слухи начнут передаваться!
-                        </div>
-                      ) : (
-                        rumorLogs.map((log: any) => (
-                          <div
-                            key={log.id}
-                            className="p-2.5 bg-neutral-950 border border-neutral-900 rounded-xl text-[11px] leading-relaxed relative overflow-hidden"
-                          >
-                            <div className="flex items-center justify-between text-[9px] text-neutral-500 font-bold mb-1">
-                              <span>💬 {log.timestamp}</span>
-                              <span className="text-amber-500 font-extrabold">ПЕРЕДАЧА 🤫</span>
-                            </div>
-                            <p className="text-neutral-200">
-                              <strong className="text-amber-400">{log.fromName}</strong> рассказал <strong className="text-indigo-400">{log.toName}</strong>:
-                            </p>
-                            <p className="text-[10px] text-neutral-400 italic mt-0.5 break-words">
-                              "{log.factText}"
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Connections List */}
-                  <div className="bg-neutral-900 border border-neutral-800/80 rounded-2xl p-4 space-y-3 shadow-lg max-h-[380px] flex flex-col">
-                    <h3 className="font-extrabold text-xs text-neutral-200 uppercase tracking-wider shrink-0">
-                      🔗 Каналы связи и вероятность утечек
-                    </h3>
-                    <p className="text-[10px] text-neutral-500 leading-relaxed shrink-0">
-                      Шанс передачи слуха между персонажами за один шаг времени (Маша и Семеныч имеют +15% бонус сплетника):
-                    </p>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3.5 pr-1 text-xs">
-                      {Object.entries(GOSSIP_CONNECTIONS).map(([speakerId, targets]) => {
-                        const speaker = characters.find(c => c.id === speakerId);
-                        if (!speaker) return null;
-                        return (
-                          <div key={speakerId} className="space-y-1">
-                            <div className="flex items-center gap-1.5 font-bold text-neutral-300">
-                              <span className={`w-1.5 h-1.5 rounded-full ${speaker.statusColor || "bg-emerald-500"}`}></span>
-                              <span>{speaker.name}</span>
-                              {(speaker.id === "masha" || speaker.id === "semenych") && (
-                                <span className="text-[8px] bg-red-600/15 text-red-400 border border-red-500/25 px-1 py-0.2 rounded font-black">
-                                  📢 СПЛЕТНИК
-                                </span>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-1 gap-1 pl-3 text-[10px] text-neutral-400">
-                              {targets.map(tg => {
-                                const targetChar = characters.find(c => c.id === tg.targetId);
-                                if (!targetChar) return null;
-                                return (
-                                  <div key={tg.targetId} className="flex items-center justify-between py-0.5 border-b border-neutral-950">
-                                    <span>👉 рассказывает {targetChar.name}:</span>
-                                    <span className="font-mono font-bold text-amber-500">{(tg.baseChance * 100).toFixed(0)}%</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
+            <LoreView
+              characters={characters}
+              sharedFacts={sharedFacts}
+              setSharedFacts={setSharedFacts}
+              rumorLogs={rumorLogs}
+              setRumorLogs={setRumorLogs}
+              setGossipNotification={setGossipNotification}
+              propagateRumors={propagateRumors}
+              gossipConnections={GOSSIP_CONNECTIONS}
+            />
           ) : (
             /* --- ACTIVE VIEW: USER PROFILE & SETTINGS (MOBILE) --- */
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-neutral-950">
@@ -4263,321 +3735,54 @@ export default function App() {
       </div>
 
       {/* MODAL 1: Character Add / Edit Form */}
-      <AnimatePresence>
-        {showCharModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-neutral-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-            >
-              {/* Modal Header */}
-              <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/60">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <PenSquare className="w-5 h-5" />
-                  <h3 className="font-bold text-base text-white">
-                    {editingCharId ? `Настройка характера: ${charName}` : "Создать нового персонажа"}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowCharModal(false)}
-                  className="p-1.5 hover:bg-neutral-800 text-neutral-400 hover:text-white rounded-lg transition-all cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Form content */}
-              <form onSubmit={handleSaveCharacter} className="p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar text-xs sm:text-sm">
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1 font-bold">Имя персонажа *</label>
-                    <input
-                      type="text"
-                      required
-                      value={charName}
-                      onChange={(e) => setCharName(e.target.value)}
-                      placeholder="Например: Алина"
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1 font-bold">Роль / Связь *</label>
-                    <input
-                      type="text"
-                      required
-                      value={charRole}
-                      onChange={(e) => setCharRole(e.target.value)}
-                      placeholder="Например: Тайная воздыхательница"
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1 font-bold">Социальный круг *</label>
-                  <select
-                    value={charGroup}
-                    onChange={(e) => setCharGroup(e.target.value as any)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Друзья">👥 Друзья (Делится сплетнями с Машей и Артёмом)</option>
-                    <option value="Семья">🏡 Семья (Родные, родители)</option>
-                    <option value="Работа">💼 Работа (Коллеги)</option>
-                    <option value="Соседи">🧱 Соседи (Жильцы дома)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1 font-bold">Подробное описание характера *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={charPersonality}
-                    onChange={(e) => setCharPersonality(e.target.value)}
-                    placeholder="Например: Капризная, ревнивая, обожает дорогие клубы. Часто злится по пустякам, но легко прощает."
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1 font-bold">Отношение к вам</label>
-                    <input
-                      type="text"
-                      value={charAttitude}
-                      onChange={(e) => setCharAttitude(e.target.value)}
-                      placeholder="Ревнивый флирт"
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1 font-bold">Манера общения</label>
-                    <input
-                      type="text"
-                      value={charSpeech}
-                      onChange={(e) => setCharSpeech(e.target.value)}
-                      placeholder="Шлет капс и кучу сердечек"
-                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1 font-bold">Первое приветствие (Для подсказок запуска)</label>
-                  <input
-                    type="text"
-                    value={charGreeting}
-                    onChange={(e) => setCharGreeting(e.target.value)}
-                    placeholder="Привет! Где ты шляешься? Мы же договаривались..."
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                {/* Adult 21+ qualities & relationship scales section */}
-                <div className="border-t border-neutral-800/80 pt-4 space-y-3.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block select-none">
-                    🍓 Ролевые показатели и наклонности (21+)
-                  </span>
-
-                  {/* Scales editing */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">🤝 Доверие (0-100%)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={charTrust}
-                        onChange={(e) => setCharTrust(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">❤️ Любовь (0-100%)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={charLove}
-                        onChange={(e) => setCharLove(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">🔥 Вожделение (0-100%)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={charLust}
-                        onChange={(e) => setCharLust(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">⚡ Гнев (0-100%)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={charAnger}
-                        onChange={(e) => setCharAnger(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Fetishes and inclinations editing */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">🍓 Фетиши (через запятую)</label>
-                      <input
-                        type="text"
-                        value={charFetishes}
-                        onChange={(e) => setCharFetishes(e.target.value)}
-                        placeholder="Доминирование, Чулки, Dirty talk"
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-neutral-400 mb-1 font-semibold">🧠 Склонности (через запятую)</label>
-                      <input
-                        type="text"
-                        value={charInclinations}
-                        onChange={(e) => setCharInclinations(e.target.value)}
-                        placeholder="Ревность, Собственничество"
-                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-200 focus:outline-none focus:border-indigo-500 text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="pt-3 border-t border-neutral-800 flex items-center justify-between shrink-0">
-                  {editingCharId ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCharacter(editingCharId)}
-                      className="px-4 py-2 bg-red-600/10 hover:bg-red-600/25 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs cursor-pointer transition-all"
-                    >
-                      🗑️ Удалить персонажа
-                    </button>
-                  ) : (
-                    <div></div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowCharModal(false)}
-                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-xs cursor-pointer"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs cursor-pointer shadow-lg"
-                    >
-                      Сохранить
-                    </button>
-                  </div>
-                </div>
-
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <AddCharacterModal
+        isOpen={showCharModal}
+        onClose={() => setShowCharModal(false)}
+        editingCharId={editingCharId}
+        charName={charName}
+        setCharName={setCharName}
+        charRole={charRole}
+        setCharRole={setCharRole}
+        charGroup={charGroup}
+        setCharGroup={setCharGroup}
+        charPersonality={charPersonality}
+        setCharPersonality={setCharPersonality}
+        charAttitude={charAttitude}
+        setCharAttitude={setCharAttitude}
+        charSpeech={charSpeech}
+        setCharSpeech={setCharSpeech}
+        charGreeting={charGreeting}
+        setCharGreeting={setCharGreeting}
+        charTrust={charTrust}
+        setCharTrust={setCharTrust}
+        charLove={charLove}
+        setCharLove={setCharLove}
+        charLust={charLust}
+        setCharLust={setCharLust}
+        charAnger={charAnger}
+        setCharAnger={setCharAnger}
+        charFetishesText={charFetishes}
+        setCharFetishesText={setCharFetishes}
+        charInclinationsText={charInclinations}
+        setCharInclinationsText={setCharInclinations}
+        charPenisSize={charPenisSize}
+        setCharPenisSize={setCharPenisSize}
+        charBallFullness={charBallFullness}
+        setCharBallFullness={setCharBallFullness}
+        handleSaveCharacter={handleSaveCharacter}
+      />
 
       {/* MODAL 2: Create Group Modal */}
-      <AnimatePresence>
-        {showGroupModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-neutral-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
-            >
-              <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/60">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <Users className="w-5 h-5" />
-                  <h3 className="font-bold text-base text-white">Создать групповой чат</h3>
-                </div>
-                <button
-                  onClick={() => setShowGroupModal(false)}
-                  className="p-1.5 hover:bg-neutral-800 text-neutral-400 hover:text-white rounded-lg transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateGroup} className="p-5 space-y-4 overflow-y-auto custom-scrollbar text-xs">
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-bold">Название группы *</label>
-                  <input
-                    type="text"
-                    required
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="Например: Семья в сборе, Курилка-Пятница"
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-neutral-100 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-bold">Выберите участников группы *</label>
-                  <div className="bg-neutral-950 rounded-xl p-3 border border-neutral-800 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                    {characters.map(char => {
-                      const isChecked = selectedParticipants.includes(char.id);
-                      return (
-                        <label
-                          key={char.id}
-                          className="flex items-center gap-3.5 p-1.5 hover:bg-neutral-900 rounded-lg cursor-pointer text-xs"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              if (isChecked) {
-                                setSelectedParticipants(prev => prev.filter(id => id !== char.id));
-                              } else {
-                                setSelectedParticipants(prev => [...prev, char.id]);
-                              }
-                            }}
-                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="font-semibold text-neutral-200">{char.name}</span>
-                          <span className="text-[10px] text-neutral-500">({char.role})</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-neutral-800 flex items-center justify-end gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowGroupModal(false)}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-xs"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-950"
-                  >
-                    Создать группу
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <CreateGroupModal
+        isOpen={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        characters={characters}
+        groupName={groupName}
+        setGroupName={setGroupName}
+        selectedParticipants={selectedParticipants}
+        setSelectedParticipants={setSelectedParticipants}
+        handleCreateGroup={handleCreateGroup}
+      />
 
       {/* MODAL 3: Photo Zoom View */}
       <AnimatePresence>
@@ -4602,454 +3807,62 @@ export default function App() {
       </AnimatePresence>
 
       {/* MODAL 4: User Profile Editing */}
-      <AnimatePresence>
-        {showProfileModal && userProfile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-neutral-800 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl flex flex-col text-xs max-h-[90vh]"
-            >
-              <div className="p-4 border-b border-neutral-800 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <User className="w-5 h-5 animate-pulse" />
-                  <h3 className="font-bold text-sm text-white">Редактирование профиля героя</h3>
-                </div>
-                <button type="button" onClick={() => setShowProfileModal(false)} className="text-neutral-400 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveProfile} className="flex-1 flex flex-col overflow-hidden min-h-0">
-                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Левая колонка: Основная информация */}
-                    <div className="space-y-4">
-                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block border-b border-neutral-800/50 pb-1">📋 Основные данные:</span>
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Имя *</label>
-                        <input
-                          type="text"
-                          required
-                          value={profileName}
-                          onChange={(e) => setProfileName(e.target.value)}
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-100"
-                        />
-                      </div>
-
-                      {/* Фото ГГ (Главного Героя) */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">
-                          Фотография Персонажа (ГГ)
-                        </label>
-                        <div className="flex items-center gap-4 bg-neutral-950/40 border border-neutral-800/80 p-3 rounded-xl">
-                          <div className="w-16 h-16 rounded-xl border border-neutral-800 bg-neutral-950 flex items-center justify-center overflow-hidden shrink-0">
-                            {isEvaluatingPhoto ? (
-                              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                            ) : profilePhoto ? (
-                              <img src={profilePhoto} alt="GG Preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-neutral-600 text-[10px] text-center px-1">Без фото</span>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              disabled={isEvaluatingPhoto}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUploadAndEvaluation(file);
-                              }}
-                              className="hidden"
-                              id="gg-photo-upload"
-                            />
-                            <label
-                              htmlFor="gg-photo-upload"
-                              className={`px-3 py-1.5 text-[11px] font-medium rounded-lg text-center transition-all select-none ${
-                                isEvaluatingPhoto
-                                  ? "bg-neutral-800 text-neutral-500 cursor-not-allowed"
-                                  : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 cursor-pointer"
-                              }`}
-                            >
-                              {isEvaluatingPhoto ? "Анализ фото..." : profilePhoto ? "Изменить фото" : "Загрузить фото"}
-                            </label>
-                            {profilePhoto && !isEvaluatingPhoto && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setProfilePhoto(null);
-                                  // Reset parameters
-                                  setProfileFace("Привлекательное, чистое лицо");
-                                  setProfileChest("Упругая, округлая грудь");
-                                  setProfileWaist("Тонкая талия, плоский живот");
-                                  setProfileHips("Выразительные, округлые бёдра");
-                                  setProfileIntimate("Аккуратные, ухоженные интимные зоны");
-                                  setProfileLegs("Стройные, длинные ноги");
-                                  setProfileOverall("Здоровое, спортивное и ухоженное тело без уродств");
-                                }}
-                                className="text-[10px] text-red-400 hover:text-red-300 font-semibold text-left transition-all cursor-pointer self-start"
-                              >
-                                Удалить фото
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {evaluationError && (
-                          <p className="text-[9px] text-amber-400 mt-1">{evaluationError}</p>
-                        )}
-                        <p className="text-[9px] text-neutral-500 mt-1">
-                          Загруженное фото ГГ позволяет остальным персонажам оценивать внешность и формировать влечение!
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Возраст *</label>
-                          <input
-                            type="number"
-                            required
-                            value={profileAge}
-                            onChange={(e) => setProfileAge(parseInt(e.target.value) || 20)}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-100"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Пол *</label>
-                          <div className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-400 text-xs font-semibold select-none flex items-center gap-1.5">
-                            <span className="text-rose-500 font-bold">♀</span> Женский (фиксирован)
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="block text-[10px] font-bold text-neutral-400 uppercase">Уровень привлекательности главной героини: <span className="text-rose-400 font-extrabold">{profileAttractiveness}%</span></label>
-                          <span className="text-[9px] text-rose-300 font-semibold">
-                            {profileAttractiveness >= 85 ? "🔥 Сногсшибательная" : profileAttractiveness >= 65 ? "✨ Привлекательная" : profileAttractiveness >= 40 ? "😊 Обычная" : "🥶 Невзрачная"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2">
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={profileAttractiveness}
-                            onChange={(e) => setProfileAttractiveness(parseInt(e.target.value))}
-                            className="flex-1 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
-                          />
-                          <span className="text-xs font-black text-rose-400 w-8 text-right">{profileAttractiveness}%</span>
-                        </div>
-                        <p className="text-[9px] text-neutral-500 mt-0.5 leading-normal">
-                          Позволяет динамически корректировать вожделение других персонажей к вам.
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Черты характера *</label>
-                        <input
-                          type="text"
-                          required
-                          value={profileTraits}
-                          onChange={(e) => setProfileTraits(e.target.value)}
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-100"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Короткая Био *</label>
-                        <textarea
-                          required
-                          rows={2.5}
-                          value={profileBio}
-                          onChange={(e) => setProfileBio(e.target.value)}
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-neutral-100"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Правая колонка: Физические параметры */}
-                    <div className="space-y-4">
-                      <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block border-b border-neutral-800/50 pb-1">🍓 Параметры Внешности (21+):</span>
-                      
-                      <div className="bg-neutral-950/35 border border-neutral-800/50 p-4 rounded-xl space-y-3">
-                        {/* Лицо */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">👩 ЛИЦО:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(faceScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{faceScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileFace}
-                              onChange={(e) => setProfileFace(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={faceScore}
-                              onChange={(e) => setFaceScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Сиськи/Грудь */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">🍈 СИСЬКИ / ГРУДЬ:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(chestScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{chestScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileChest}
-                              onChange={(e) => setProfileChest(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={chestScore}
-                              onChange={(e) => setChestScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Талия */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">⏳ ТАЛИЯ:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(waistScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{waistScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileWaist}
-                              onChange={(e) => setProfileWaist(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={waistScore}
-                              onChange={(e) => setWaistScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Бедра */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">🍑 БЁДРА:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(hipsScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{hipsScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileHips}
-                              onChange={(e) => setProfileHips(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={hipsScore}
-                              onChange={(e) => setHipsScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Вагина/Пах */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">🐱 ВАГИНА / ПАХ:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(vaginaScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{vaginaScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileVagina}
-                              onChange={(e) => {
-                                setProfileVagina(e.target.value);
-                                setProfileIntimate(e.target.value);
-                              }}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={vaginaScore}
-                              onChange={(e) => setVaginaScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Анус/Попа */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">🍩 АНУС / ПОПА:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(anusScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{anusScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileAnus}
-                              onChange={(e) => setProfileAnus(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={anusScore}
-                              onChange={(e) => setAnusScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Ноги */}
-                        <div className="space-y-1.5 border-b border-neutral-800/40 pb-2">
-                          <div className="flex justify-between items-center text-[10px] font-bold">
-                            <span className="text-neutral-400">🦵 НОГИ:</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-rose-500/10 text-rose-300 px-1.5 py-0.5 rounded font-semibold">{getPartRatingText(legsScore)}</span>
-                              <span className="text-rose-400 font-extrabold">{legsScore}/100</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              required
-                              value={profileLegs}
-                              onChange={(e) => setProfileLegs(e.target.value)}
-                              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-neutral-100 text-[11px]"
-                            />
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={legsScore}
-                              onChange={(e) => setLegsScore(parseInt(e.target.value))}
-                              className="w-full sm:w-24 accent-rose-500 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer mt-1 sm:mt-2"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[9px] text-neutral-400 mb-1 font-bold uppercase">Общее состояние и здоровье *</label>
-                          <textarea
-                            required
-                            rows={2}
-                            value={profileOverall}
-                            onChange={(e) => setProfileOverall(e.target.value)}
-                            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-neutral-100 text-[11px]"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* AI Detailed Analysis and Plot Context section inside profile editing modal */}
-                  {(profileDetailedAnalysis || profileImageSceneDescription || profilePlotContext) && (
-                    <div className="mt-4 border-t border-neutral-800/80 pt-4 space-y-4 text-left">
-                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">🔮 Углубленный ИИ-Анализ Внешности и Сюжета:</span>
-                      
-                      <div className="grid grid-cols-1 gap-3">
-                        {profileDetailedAnalysis && (
-                          <div className="bg-indigo-950/20 border border-indigo-900/30 p-3 rounded-xl space-y-1">
-                            <span className="font-bold text-[9px] text-indigo-300 uppercase tracking-wider block">🎨 Психофизический Анализ & Харизма:</span>
-                            <p className="text-neutral-300 text-[11px] leading-relaxed whitespace-pre-wrap">{profileDetailedAnalysis}</p>
-                          </div>
-                        )}
-
-                        {profileImageSceneDescription && (
-                          <div className="bg-purple-950/20 border border-purple-900/30 p-3 rounded-xl space-y-1">
-                            <span className="font-bold text-[9px] text-purple-300 uppercase tracking-wider block">📸 Описание сцены & одежды на фото:</span>
-                            <p className="text-neutral-300 text-[11px] leading-relaxed whitespace-pre-wrap">{profileImageSceneDescription}</p>
-                          </div>
-                        )}
-
-                        {profilePlotContext && (
-                          <div className="bg-rose-950/20 border border-rose-900/30 p-3 rounded-xl space-y-1">
-                            <span className="font-bold text-[9px] text-rose-300 uppercase tracking-wider block">📖 Влияние на Сюжет & Реакции Окружающих:</span>
-                            <p className="text-neutral-300 text-[11px] leading-relaxed whitespace-pre-wrap">{profilePlotContext}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="p-4 border-t border-neutral-800 flex justify-between items-center bg-neutral-900/90 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleResetData}
-                    className="px-3.5 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all active:scale-[0.98]"
-                    title="Сбросить всю игру"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Сбросить всё</span>
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowProfileModal(false)}
-                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[11px]"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-[11px]"
-                    >
-                      Сохранить изменения
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <UserProfileEditor
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        userProfile={userProfile}
+        profileName={profileName}
+        setProfileName={setProfileName}
+        profilePhoto={profilePhoto}
+        setProfilePhoto={setProfilePhoto}
+        isEvaluatingPhoto={isEvaluatingPhoto}
+        evaluationError={evaluationError}
+        handlePhotoUploadAndEvaluation={handlePhotoUploadAndEvaluation}
+        profileAge={profileAge}
+        setProfileAge={setProfileAge}
+        profileAttractiveness={profileAttractiveness}
+        setProfileAttractiveness={setProfileAttractiveness}
+        profileTraits={profileTraits}
+        setProfileTraits={setProfileTraits}
+        profileBio={profileBio}
+        setProfileBio={setProfileBio}
+        faceScore={faceScore}
+        setFaceScore={setFaceScore}
+        profileFace={profileFace}
+        setProfileFace={setProfileFace}
+        chestScore={chestScore}
+        setChestScore={setChestScore}
+        profileChest={profileChest}
+        setProfileChest={setProfileChest}
+        waistScore={waistScore}
+        setWaistScore={setWaistScore}
+        profileWaist={profileWaist}
+        setProfileWaist={setProfileWaist}
+        hipsScore={hipsScore}
+        setHipsScore={setHipsScore}
+        profileHips={profileHips}
+        setProfileHips={setProfileHips}
+        vaginaScore={vaginaScore}
+        setVaginaScore={setVaginaScore}
+        profileVagina={profileVagina}
+        setProfileVagina={setProfileVagina}
+        setProfileIntimate={setProfileIntimate}
+        anusScore={anusScore}
+        setAnusScore={setAnusScore}
+        profileAnus={profileAnus}
+        setProfileAnus={setProfileAnus}
+        legsScore={legsScore}
+        setLegsScore={setLegsScore}
+        profileLegs={profileLegs}
+        setProfileLegs={setProfileLegs}
+        profileOverall={profileOverall}
+        setProfileOverall={setProfileOverall}
+        profileDetailedAnalysis={profileDetailedAnalysis}
+        profileImageSceneDescription={profileImageSceneDescription}
+        profilePlotContext={profilePlotContext}
+        handleSaveProfile={handleSaveProfile}
+        handleResetData={handleResetData}
+      />
 
       {/* MODAL: Interactive Seduction & Sex Scene (21+ adult RPG) */}
       <AnimatePresence>

@@ -7,7 +7,7 @@ interface CharacterItemProps {
   lastMsg?: Message;
   gameClock: number;
   currentLocation: string;
-  onSelect: () => void;
+  onSelect: (id: string) => void;
 }
 
 export const CharacterItem = memo(function CharacterItem({
@@ -46,7 +46,7 @@ export const CharacterItem = memo(function CharacterItem({
 
   return (
     <button
-      onClick={onSelect}
+      onClick={() => onSelect(char.id)}
       className={`w-full text-left p-2.5 rounded-xl flex items-start gap-3 transition-all cursor-pointer relative ${
         isSelected
           ? "bg-indigo-600/15 border border-indigo-500/25 shadow-md shadow-indigo-950/20"
