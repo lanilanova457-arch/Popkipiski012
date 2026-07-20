@@ -1,0 +1,6 @@
+{
+  "name": "Piskapopka012 Chat Simulator",
+  "description": "A secure, offline-first private adult roleplay chat simulator with dynamic relationship scaling and AI-guided character interactions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
